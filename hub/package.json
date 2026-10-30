@@ -1,0 +1,13 @@
+{
+  "name": "emodesk-hub",
+  "version": "2.0.0",
+  "description": "Internet hub for EmoDesk: sports, weather, markets, news and alerts in one small feed",
+  "main": "server.js",
+  "bin": { "emodesk-hub": "server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=18.17" },
+  "license": "MIT"
+}

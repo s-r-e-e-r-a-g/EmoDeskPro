@@ -1,0 +1,10 @@
+.pio/
+.vscode/
+build/
+node_modules/
+hub/hub-data.json
+tools/preview/build/
+tools/preview/out/
+__pycache__/
+*.pyc
+.DS_Store

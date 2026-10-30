@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#e7eaee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11161f" media="(prefers-color-scheme: dark)">
+<title>EmoDesk</title>
+<style>
+:root{
+  --bench:#e7eaee;--panel:#f8f9fb;--ink:#18202e;--muted:#5f6b7e;--line:#d3d8df;--soft:#eef1f4;
+  --act:#2b59c3;--act-ink:#fff;--live:#c8372d;--ok:#25804f;
+  --glass:#050a12;--pix:#bfe6ff;--bezel:#1d2533;
+  --r-s:6px;--r-m:12px;--r-l:22px;
+  --f:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  --f-round:ui-rounded,"SF Pro Rounded","Nunito","Varela Round",var(--f);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bench:#11161f;--panel:#19202b;--ink:#e8edf4;--muted:#9aa6b8;--line:#2c3544;--soft:#212a37;
+  --act:#6f93f0;--act-ink:#0c1220;--live:#ef6b5f;--ok:#57c08a;--bezel:#0b0f16;
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bench);color:var(--ink);font:15px/1.5 var(--f);font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--act);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-round);line-height:1.2;margin:0}
+h1{font-size:20px;font-weight:700}
+h2{font-size:17px;font-weight:700;margin-bottom:4px}
+h3{font-size:15px;font-weight:650}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* ---------- layout ---------- */
+.app{max-width:1180px;margin:0 auto;padding:16px 16px 96px;display:grid;gap:20px}
+@media (min-width:900px){.app{grid-template-columns:420px 1fr;align-items:start;padding:28px 24px 40px}
+  .device{position:sticky;top:28px}}
+.top{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:13px;color:var(--muted);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--ok)}.dot.bad{background:var(--live)}.dot.wait{background:#d79b28}
+
+/* ---------- the device ---------- */
+.device{display:grid;gap:16px}
+.bezel{background:var(--bezel);border-radius:var(--r-l);padding:18px 18px 22px;box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 18px 40px -24px rgba(10,20,40,.6)}
+.screen{display:block;width:100%;aspect-ratio:2/1;background:var(--glass);border-radius:6px;image-rendering:pixelated}
+.screen-meta{display:flex;justify-content:space-between;margin-top:10px;color:#8592a8;font-size:12px}
+.pad-row{display:flex;align-items:center;gap:16px;margin-top:16px}
+.pad{flex:none;width:76px;height:76px;border-radius:50%;border:0;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;
+  background:radial-gradient(circle at 50% 38%,#3a4558,#232b38 70%);box-shadow:0 2px 0 #0a0e15,0 0 0 4px #2a3342;transition:transform .08s}
+.pad.on{transform:translateY(2px) scale(.97);box-shadow:0 0 0 4px var(--act),0 0 18px 2px color-mix(in srgb,var(--act) 50%,transparent)}
+.pad-help{color:#9aa6b8;font-size:13px;line-height:1.45}
+.pad-help b{color:#dfe7f2;font-weight:600}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mood-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+
+/* ---------- controls ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;min-height:40px;padding:8px 14px;border-radius:var(--r-s);border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:550}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--act);border-color:var(--act);color:var(--act-ink)}
+.btn.danger{color:var(--live)}
+.btn.ghost{background:transparent}
+.btn.sm{min-height:32px;padding:4px 10px;font-size:13px}
+.btn[aria-pressed=true]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+input[type=text],input[type=password],input[type=number],input[type=url],input[type=time],input[type=search],select,textarea{
+  width:100%;min-height:40px;padding:8px 10px;border-radius:var(--r-s);border:1px solid var(--line);background:var(--bench)}
+textarea{min-height:120px;font-size:12px;line-height:1.4;font-family:ui-monospace,Menlo,Consolas,monospace}
+input[type=range]{width:100%;accent-color:var(--act)}
+.switch{position:relative;width:44px;height:26px;flex:none}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .15s}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.switch input:checked+span{background:var(--act)}
+.switch input:checked+span::after{transform:translateX(18px)}
+.switch input:focus-visible+span{outline:2px solid var(--act);outline-offset:2px}
+
+/* ---------- panels ---------- */
+.tabs{display:flex;gap:4px;padding:4px;background:var(--soft);border-radius:var(--r-m);position:sticky;top:8px;z-index:5}
+.tab{flex:1;min-height:40px;border:0;border-radius:9px;background:transparent;cursor:pointer;font-weight:600;color:var(--muted)}
+.tab[aria-selected=true]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(10,20,40,.08)}
+@media (max-width:899px){
+  .tabs{position:fixed;left:0;right:0;bottom:0;top:auto;border-radius:0;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--line)}
+}
+.view{display:grid;gap:16px}
+.group{background:var(--panel);border-radius:var(--r-m);padding:18px;display:grid;gap:14px}
+.group>header{display:grid;gap:2px}
+.row{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.row>label,.row>.lbl{flex:1}
+.field{display:grid;gap:6px}
+.field>span{font-size:13px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:520px){.grid3{grid-template-columns:1fr 1fr}}
+.divider{height:1px;background:var(--line);margin:2px 0}
+.note{font-size:13px;color:var(--muted)}
+.warn{font-size:13px;color:var(--live)}
+
+/* ---------- cards list ---------- */
+.cards{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.card{background:var(--panel);border-radius:var(--r-m);border:1px solid transparent}
+.card.dragging{opacity:.5}
+.card.over{border-color:var(--act)}
+.card.current{border-color:var(--line)}
+.card-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.handle{cursor:grab;color:var(--muted);padding:6px;border:0;background:none;touch-action:none;line-height:0}
+.card-title{flex:1;min-width:0;text-align:left;border:0;background:none;padding:4px 0;cursor:pointer}
+.card-title b{display:block;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-title small{color:var(--muted);font-size:13px}
+.card.off .card-title b{color:var(--muted);font-weight:500}
+.now-badge{font-size:12px;color:var(--act);font-weight:650}
+.card-body{padding:0 12px 14px 48px;display:grid;gap:12px}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.pick{text-align:left;padding:12px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.pick:hover{border-color:var(--act)}
+.pick b{display:block}
+.pick small{color:var(--muted);font-size:12.5px;line-height:1.35;display:block;margin-top:2px}
+.tag{display:inline-block;font-size:11.5px;padding:0 6px;border-radius:4px;background:var(--soft);color:var(--muted);margin-left:4px;vertical-align:1px}
+
+/* ---------- lists in settings ---------- */
+.list{display:grid;gap:8px}
+.item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r-s);background:var(--bench)}
+.item>.grow{flex:1;min-width:0}
+.days{display:flex;gap:4px}
+.day{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:12px;font-weight:650;padding:0}
+.day[aria-pressed=true]{background:var(--act);border-color:var(--act);color:var(--act-ink)}
+.stat{display:grid;gap:2px}
+.stat b{font-size:20px;font-family:var(--f-round)}
+.stat span{font-size:13px;color:var(--muted)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--act);width:0}
+
+/* ---------- overlays ---------- */
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:999px;font-weight:550;opacity:0;pointer-events:none;transition:all .2s;z-index:50;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+@media (min-width:900px){.toast{bottom:28px}}
+.modal{position:fixed;inset:0;background:rgba(10,15,25,.45);display:grid;place-items:center;padding:16px;z-index:40}
+.modal>div{background:var(--panel);border-radius:var(--r-l);padding:22px;width:min(420px,100%);display:grid;gap:14px;max-height:90vh;overflow:auto}
+[hidden]{display:none!important}
+.setup{max-width:460px;margin:0 auto;padding:32px 16px;display:grid;gap:18px}
+.net{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:12px;border-radius:var(--r-s);border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.net[aria-pressed=true]{border-color:var(--act);box-shadow:0 0 0 1px var(--act)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ================= setup (no Wi-Fi yet) ================= -->
+<main class="setup" id="setup" hidden>
+  <div><h1>Hello, I'm Emo</h1><p class="muted">Pick your Wi-Fi so I can get the time, weather and scores.</p></div>
+  <div class="group">
+    <div class="row"><h2>Networks nearby</h2><button class="btn sm" id="scanBtn">Scan again</button></div>
+    <div class="list" id="netList"><p class="muted small">Scanning...</p></div>
+    <label class="field"><span>Network name</span><input type="text" id="ssid" autocomplete="off" autocapitalize="none"></label>
+    <label class="field"><span>Password</span><input type="password" id="pass" autocomplete="current-password"></label>
+    <button class="btn primary" id="joinBtn">Connect</button>
+    <p class="note" id="setupNote">I keep this hotspot open until I'm connected, so you can come back if something is wrong.</p>
+  </div>
+</main>
+
+<!-- ================= main app ================= -->
+<div class="app" id="app" hidden>
+  <aside class="device">
+    <div class="top">
+      <h1 id="devName">Emo</h1>
+      <div class="chips" id="statusChips"></div>
+    </div>
+    <div class="bezel">
+      <canvas class="screen" id="screen" width="512" height="256" aria-label="Live view of Emo's screen"></canvas>
+      <div class="screen-meta"><span id="cardNow">-</span><span id="liveTag">connecting...</span></div>
+      <div class="pad-row">
+        <button class="pad" id="pad" aria-label="Touch pad: tap, double-tap, hold"></button>
+        <p class="pad-help"><b>Tap</b> next card &nbsp;<b>Double</b> card action<br><b>Hold</b> pin or pet &nbsp;<b>Triple</b> home</p>
+      </div>
+    </div>
+    <div class="quick">
+      <button class="btn" data-act="prev">Back</button>
+      <button class="btn" data-act="next">Next</button>
+      <button class="btn" data-act="home">Home</button>
+      <button class="btn" data-act="pin" id="pinBtn" aria-pressed="false">Pin</button>
+    </div>
+    <div class="mood-row" id="moods"></div>
+    <form class="row" id="msgForm" style="gap:8px">
+      <input type="text" id="msgText" placeholder="Show a message on Emo" maxlength="200" aria-label="Message">
+      <button class="btn primary">Send</button>
+    </form>
+  </aside>
+
+  <main class="view" id="main">
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="cards" aria-selected="true">Cards</button>
+      <button class="tab" role="tab" data-tab="settings">Settings</button>
+      <button class="tab" role="tab" data-tab="data">Live data</button>
+      <button class="tab" role="tab" data-tab="system">System</button>
+    </nav>
+
+    <!-- cards -->
+    <section class="view" data-view="cards">
+      <div class="row"><div><h2>Cards</h2><p class="note">Drag to reorder. Emo rotates through the switched-on cards and skips empty ones.</p></div>
+        <button class="btn primary" id="addCardBtn">Add card</button></div>
+      <ul class="cards" id="cardList"></ul>
+      <div class="group" id="pickerBox" hidden>
+        <div class="row"><h2>Add a card</h2><button class="btn ghost sm" id="pickerClose">Close</button></div>
+        <div class="picker" id="picker"></div>
+      </div>
+    </section>
+
+    <!-- settings -->
+    <section class="view" data-view="settings" hidden>
+      <div class="group">
+        <header><h2>Place and time</h2><p class="note">Used for weather and the clock. Searching a city also sets the time zone.</p></header>
+        <div class="field"><span>City</span><input type="search" id="citySearch" placeholder="Search a city"></div>
+        <div class="list" id="cityResults"></div>
+        <p class="small" id="placeNow"></p>
+        <div class="grid2">
+          <label class="row"><span class="lbl">24-hour clock</span><span class="switch"><input type="checkbox" data-k="time.h24"><span></span></span></label>
+          <label class="row"><span class="lbl">Fahrenheit, mph</span><span class="switch"><input type="checkbox" data-k="loc.imperial"><span></span></span></label>
+        </div>
+      </div>
+
+      <div class="group">
+        <header><h2>Hub</h2><p class="note">The hub fetches sports, markets, news and calendars for Emo and pushes changes the moment they happen. Run it on any PC, Raspberry Pi or server: <code>node hub/server.js</code>. Without it Emo still shows the time and weather.</p></header>
+        <label class="field"><span>Hub address</span><input type="url" data-k="hub.url" placeholder="http://192.168.1.10:8787"></label>
+        <label class="field"><span>Hub token (if you set HUB_TOKEN)</span><input type="password" data-k="hub.token" autocomplete="off"></label>
+        <div class="row"><p class="small" id="hubTest"></p><button class="btn sm" id="hubTestBtn">Test hub</button></div>
+      </div>
+
+      <div class="group">
+        <header><h2>Football</h2><p class="note">Teams are picked from a list, so only your team ever matches.</p></header>
+        <div class="field"><span>Leagues to show</span><div class="chips" id="fbLeagues"></div></div>
+        <div class="field"><span>Your teams</span><div class="list" id="fbTeams"></div></div>
+        <div class="grid2"><select id="fbLgPick" aria-label="League"></select><select id="fbTeamPick" aria-label="Team"><option value="">Pick a team</option></select></div>
+      </div>
+
+      <div class="group">
+        <header><h2>Cricket</h2></header>
+        <div class="field"><span>Your teams</span><div class="list" id="crTeams"></div></div>
+        <div class="grid2"><select id="crTeamPick" aria-label="Cricket team"><option value="">Pick from current matches</option></select>
+          <input type="text" id="crAbbr" placeholder="or type a code, e.g. IND" maxlength="5"></div>
+        <label class="row"><span class="lbl">Also show every other live match</span><span class="switch"><input type="checkbox" data-k="sports.crAll"><span></span></span></label>
+      </div>
+
+      <div class="group">
+        <header><h2>Alerts</h2><p class="note">Full-screen alert, a sound and a reaction from Emo.</p></header>
+        <div class="grid2">
+          <label class="row"><span class="lbl">Goals</span><span class="switch"><input type="checkbox" data-k="sports.alGoal"><span></span></span></label>
+          <label class="row"><span class="lbl">Wickets</span><span class="switch"><input type="checkbox" data-k="sports.alWkt"><span></span></span></label>
+          <label class="row"><span class="lbl">Results</span><span class="switch"><input type="checkbox" data-k="sports.alRes"><span></span></span></label>
+          <label class="row"><span class="lbl">Match starts</span><span class="switch"><input type="checkbox" data-k="sports.alStart"><span></span></span></label>
+        </div>
+        <label class="row"><span class="lbl">Alerts for matches without my teams</span><span class="switch"><input type="checkbox" data-k="sports.alAny"><span></span></span></label>
+      </div>
+
+      <div class="group">
+        <header><h2>Markets, news and calendar</h2></header>
+        <label class="field"><span>Crypto (CoinGecko ids)</span><input type="text" data-k="markets.crypto" placeholder="bitcoin,ethereum,solana"></label>
+        <label class="field"><span>Stocks (Yahoo symbols, .NS for NSE)</span><input type="text" data-k="markets.stocks" placeholder="AAPL,RELIANCE.NS"></label>
+        <div class="grid2">
+          <label class="field"><span>Currency pairs</span><input type="text" data-k="markets.fx" placeholder="USD:INR,EUR:USD"></label>
+          <label class="field"><span>Crypto priced in</span><input type="text" data-k="markets.vs" maxlength="4"></label>
+        </div>
+        <label class="field"><span>News source</span><select data-k="news" id="newsSel"></select></label>
+        <label class="field" id="newsCustomBox" hidden><span>Search words or RSS address</span><input type="text" id="newsCustom" placeholder="cricket world cup  or  https://site/feed.xml"></label>
+        <label class="field"><span>Calendar (iCal link, e.g. Google Calendar "secret address")</span><input type="url" data-k="ical" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"></label>
+      </div>
+
+      <div class="group">
+        <header><h2>Display</h2></header>
+        <label class="field"><span>Brightness</span><input type="range" min="1" max="255" data-k="display.bright"></label>
+        <label class="row"><span class="lbl">Dim at night</span><span class="switch"><input type="checkbox" data-k="display.nightDim"><span></span></span></label>
+        <div class="grid3">
+          <label class="field"><span>From</span><input type="time" data-k="display.dimFrom"></label>
+          <label class="field"><span>To</span><input type="time" data-k="display.dimTo"></label>
+          <label class="field"><span>Night level</span><input type="number" min="1" max="255" data-k="display.dimLevel"></label>
+        </div>
+        <div class="grid2">
+          <label class="row"><span class="lbl">Slide between cards</span><span class="switch"><input type="checkbox" data-k="display.slide"><span></span></span></label>
+          <label class="row"><span class="lbl">Burn-in shift</span><span class="switch"><input type="checkbox" data-k="display.burnShift"><span></span></span></label>
+          <label class="row"><span class="lbl">Upside down</span><span class="switch"><input type="checkbox" data-k="display.flip"><span></span></span></label>
+          <label class="field"><span>Screen off after (min, 0 = never)</span><input type="number" min="0" max="600" data-k="display.offAfterMin"></label>
+        </div>
+      </div>
+
+      <div class="group">
+        <header><h2>Rotation</h2></header>
+        <label class="row"><span class="lbl">Rotate cards</span><span class="switch"><input type="checkbox" data-k="rotate.on"><span></span></span></label>
+        <div class="grid2">
+          <label class="field"><span>Seconds per card</span><input type="number" min="3" max="240" data-k="rotate.sec"></label>
+          <label class="field"><span>Back to Emo after (s, rotation off)</span><input type="number" min="0" max="3600" data-k="rotate.homeAfter"></label>
+        </div>
+        <label class="row"><span class="lbl">Skip cards with nothing to show</span><span class="switch"><input type="checkbox" data-k="rotate.skipEmpty"><span></span></span></label>
+      </div>
+
+      <div class="group">
+        <header><h2>Emo</h2></header>
+        <label class="field"><span>Liveliness</span><input type="range" min="0" max="100" data-k="emo.lively"></label>
+        <div class="grid2">
+          <label class="field"><span>Bedtime</span><input type="time" data-k="emo.sleepAt"></label>
+          <label class="field"><span>Wakes at</span><input type="time" data-k="emo.wakeAt"></label>
+        </div>
+        <div class="grid2">
+          <label class="row"><span class="lbl">Reacts to weather</span><span class="switch"><input type="checkbox" data-k="emo.weather"><span></span></span></label>
+          <label class="row"><span class="lbl">Reacts to scores</span><span class="switch"><input type="checkbox" data-k="emo.sports"><span></span></span></label>
+        </div>
+      </div>
+
+      <div class="group">
+        <header><h2>Alarms</h2></header>
+        <div class="list" id="alarmList"></div>
+        <button class="btn" id="addAlarm">Add alarm</button>
+        <label class="row"><span class="lbl">Hourly chime</span><span class="switch"><input type="checkbox" data-k="sound.hourly"><span></span></span></label>
+      </div>
+
+      <div class="group">
+        <header><h2>Sound</h2><p class="note">Needs the MAX98357A speaker board (see WIRING.md).</p></header>
+        <label class="row"><span class="lbl">Speaker installed</span><span class="switch"><input type="checkbox" data-k="sound.on"><span></span></span></label>
+        <label class="field"><span>Volume</span><input type="range" min="0" max="100" data-k="sound.volume"></label>
+        <div class="grid2">
+          <label class="field"><span>Quiet from</span><input type="time" data-k="sound.quietFrom"></label>
+          <label class="field"><span>Quiet until</span><input type="time" data-k="sound.quietTo"></label>
+        </div>
+        <div class="chips" id="sndTest"></div>
+      </div>
+
+      <div class="group">
+        <header><h2>Wi-Fi</h2><p class="note">Emo tries these in order. Up to three.</p></header>
+        <div class="list" id="wifiList"></div>
+        <div class="grid2"><input type="text" id="wSsid" placeholder="Network name"><input type="password" id="wPass" placeholder="Password"></div>
+        <button class="btn" id="wAdd">Add network</button>
+        <label class="field"><span>Transmit power</span>
+          <select data-k="wifi.tx" data-num><option value="0">Low 8.5 dBm (most reliable on the Super Mini)</option><option value="1">11 dBm</option><option value="2">15 dBm</option><option value="3">Full 19.5 dBm</option></select></label>
+        <label class="row"><span class="lbl">Wi-Fi power saving (slower to respond)</span><span class="switch"><input type="checkbox" data-k="wifi.sleep"><span></span></span></label>
+      </div>
+
+      <div class="group">
+        <header><h2>Device</h2></header>
+        <div class="grid2">
+          <label class="field"><span>Name (opens at name.local)</span><input type="text" data-k="device.host" maxlength="23"></label>
+          <label class="field"><span>Dashboard PIN (empty = none)</span><input type="password" data-k="device.pin" maxlength="11" autocomplete="new-password"></label>
+        </div>
+        <label class="row"><span class="lbl">Screen off while my PC is locked (PC companion)</span><span class="switch"><input type="checkbox" data-k="pcPresence"><span></span></span></label>
+      </div>
+    </section>
+
+    <!-- live data -->
+    <section class="view" data-view="data" hidden>
+      <div class="group"><header><h2>What the hub sends</h2><p class="note">The feed Emo is showing right now, straight from the hub. Useful to check teams and leagues.</p></header>
+        <div class="row"><p class="small" id="feedInfo"></p><button class="btn sm" id="feedLoad">Refresh</button></div>
+        <div class="list" id="feedView"><p class="muted small">Set the hub address in Settings first.</p></div>
+      </div>
+    </section>
+
+    <!-- system -->
+    <section class="view" data-view="system" hidden>
+      <div class="group"><header><h2>Health</h2></header>
+        <div class="grid3" id="health"></div>
+        <p class="small" id="healthNote"></p>
+      </div>
+      <div class="group"><header><h2>Firmware</h2><p class="note" id="fwNote"></p></header>
+        <input type="file" id="fwFile" accept=".bin">
+        <div class="bar"><i id="fwBar"></i></div>
+        <button class="btn primary" id="fwBtn" disabled>Install update</button>
+      </div>
+      <div class="group"><header><h2>Backup</h2><p class="note">Settings and cards in one file.</p></header>
+        <div class="row" style="flex-wrap:wrap;justify-content:flex-start">
+          <a class="btn" href="/api/backup" download>Download (no passwords)</a>
+          <a class="btn" href="/api/backup?secrets=1" download>Download with passwords</a>
+          <label class="btn">Restore from file<input type="file" id="restoreFile" accept=".json" hidden></label>
+        </div>
+      </div>
+      <div class="group"><div class="row"><h2>Log</h2><button class="btn sm" id="logBtn">Refresh</button></div>
+        <textarea id="log" readonly aria-label="Device log"></textarea></div>
+      <div class="group"><header><h2>Restart</h2></header>
+        <div class="row" style="justify-content:flex-start;flex-wrap:wrap">
+          <button class="btn" id="rebootBtn">Restart Emo</button>
+          <button class="btn danger" id="factoryBtn">Erase all settings</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="pinModal" hidden><div>
+  <h2>Enter the PIN</h2><p class="note">This EmoDesk is protected with a PIN.</p>
+  <input type="password" id="pinInput" inputmode="numeric" autocomplete="current-password" aria-label="PIN">
+  <button class="btn primary" id="pinBtn2">Unlock</button>
+</div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const h=(tag,attrs={},...kids)=>{const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')e.className=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(v===true)e.setAttribute(k,'');else if(v!==false&&v!=null)e.setAttribute(k,v)}for(const c of kids.flat())if(c!=null)e.append(c.nodeType?c:document.createTextNode(c));return e};
+const state={st:{},cfg:null,cards:[],types:[],openCard:-1,hubMeta:null};
+let toastT;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
+
+async function api(path,opts={}){
+  const r=await fetch(path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});
+  if(r.status===401){$('#pinModal').hidden=false;$('#pinInput').focus();throw new Error('PIN required')}
+  const ct=r.headers.get('content-type')||'';
+  const data=ct.includes('json')?await r.json():await r.text();
+  if(!r.ok)throw new Error(data&&data.error||('HTTP '+r.status));
+  return data;
+}
+const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
+
+// ---------------------------------------------------------------- live screen
+const cv=$('#screen'),cx=cv.getContext('2d');
+function pixColor(){return getComputedStyle(document.documentElement).getPropertyValue('--pix').trim()||'#bfe6ff'}
+function drawFrame(buf){
+  const b=new Uint8Array(buf);if(b.length<1024)return;
+  cx.fillStyle='#050a12';cx.fillRect(0,0,512,256);cx.fillStyle=pixColor();
+  for(let p=0;p<8;p++)for(let x=0;x<128;x++){const v=b[p*128+x];if(!v)continue;for(let k=0;k<8;k++)if(v&(1<<k))cx.fillRect(x*4,(p*8+k)*4,3,3)}
+}
+let ws,wsTry=0,lastMsg=0;
+function connectWs(){
+  if(location.protocol==='file:')return;
+  ws=new WebSocket(`ws://${location.host}/ws`);ws.binaryType='arraybuffer';
+  ws.onopen=()=>{wsTry=0;$('#liveTag').textContent='live'};
+  ws.onmessage=e=>{lastMsg=Date.now();if(typeof e.data==='string'){try{onStatus(JSON.parse(e.data))}catch(_){}}else drawFrame(e.data)};
+  ws.onclose=()=>{$('#liveTag').textContent='reconnecting...';setTimeout(connectWs,Math.min(10000,800*2**wsTry++))};
+}
+setInterval(()=>{if(ws&&ws.readyState===1&&Date.now()-lastMsg>8000)ws.close()},4000);
+function sendGesture(g){if(ws&&ws.readyState===1)ws.send(g);else post('/api/action?a=next').catch(()=>{})}
+
+// Touch pad: same timing rules as the real one
+(function(){
+  const pad=$('#pad');let down=0,taps=0,tapT,longT,longFired=false;
+  const multi=()=>state.cfg?state.cfg.input.multiMs:260, hold=()=>state.cfg?state.cfg.input.holdMs:600, lng=()=>state.cfg?state.cfg.input.longMs:2500;
+  pad.addEventListener('pointerdown',e=>{e.preventDefault();pad.setPointerCapture(e.pointerId);pad.classList.add('on');down=Date.now();longFired=false;clearTimeout(tapT);sendGesture('down');
+    longT=setTimeout(()=>{longFired=true;taps=0;sendGesture('long')},lng())});
+  const up=()=>{if(!down)return;pad.classList.remove('on');clearTimeout(longT);const held=Date.now()-down;down=0;sendGesture('up');
+    if(longFired)return;if(held>=hold()){taps=0;sendGesture('hold');return}
+    taps++;tapT=setTimeout(()=>{sendGesture(taps>=3?'triple':taps===2?'double':'tap');taps=0},multi())};
+  pad.addEventListener('pointerup',up);pad.addEventListener('pointercancel',up);
+  pad.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();sendGesture('tap')}});
+})();
+
+// ---------------------------------------------------------------- status
+function fmtAgo(s){if(s<0)return'never';if(s<90)return s+' s ago';if(s<5400)return Math.round(s/60)+' min ago';return Math.round(s/3600)+' h ago'}
+function fmtUp(s){const d=Math.floor(s/86400),hh=Math.floor(s/3600)%24,m=Math.floor(s/60)%60;return(d?d+'d ':'')+hh+'h '+m+'m'}
+function onStatus(s){
+  state.st=s;
+  $('#devName').textContent=s.host?s.host.charAt(0).toUpperCase()+s.host.slice(1):'Emo';
+  document.title=($('#devName').textContent)+' - EmoDesk';
+  const wifi=s.mode==='online'?['ok',`${s.ssid} ${s.rssi} dBm`]:['wait',s.mode==='setup'?'Not set up':'Connecting'];
+  const hub=!s.hub.url?['', 'No hub']:s.hub.state==='ok'?['ok','Hub']:s.hub.state==='error'?['bad',s.hub.error||'Hub offline']:['wait','Hub...'];
+  $('#statusChips').replaceChildren(h('span',{class:'chip'},h('i',{class:'dot '+wifi[0]}),wifi[1]),h('span',{class:'chip'},h('i',{class:'dot '+hub[0]}),hub[1]));
+  $('#cardNow').textContent=s.cardTitle?`Showing ${s.cardTitle}${s.pinned?' (pinned)':''}`:'-';
+  $('#pinBtn').setAttribute('aria-pressed',s.pinned?'true':'false');
+  $$('.card').forEach((el,i)=>{el.classList.toggle('current',i===s.card);const b=$('.now-badge',el);if(b)b.hidden=i!==s.card});
+  $$('#moods .btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===s.mood?'true':'false'));
+  renderHealth();
+}
+
+// ---------------------------------------------------------------- quick actions
+$$('[data-act]').forEach(b=>b.onclick=()=>post('/api/action?a='+b.dataset.act).catch(e=>toast(e.message)));
+const MOODS=['happy','love','excited','surprised','sad','angry','sleepy','wink','dizzy','neutral'];
+$('#moods').append(...MOODS.map(m=>h('button',{class:'btn sm','data-m':m,onclick:()=>post('/api/emo',{mood:m}).catch(e=>toast(e.message))},m[0].toUpperCase()+m.slice(1))));
+$('#msgForm').onsubmit=e=>{e.preventDefault();const t=$('#msgText').value.trim();if(!t)return;post('/api/message',{text:t,from:'Dashboard'}).then(()=>{$('#msgText').value='';toast('Shown on Emo')}).catch(e=>toast(e.message))};
+
+// ---------------------------------------------------------------- tabs
+$$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.setAttribute('aria-selected',x===t?'true':'false'));
+  $$('[data-view]').forEach(v=>v.hidden=v.dataset.view!==t.dataset.tab);
+  if(t.dataset.tab==='system'){loadLog()} if(t.dataset.tab==='data')loadFeed();
+  if(innerWidth<900)scrollTo({top:0})});
+
+// ---------------------------------------------------------------- settings
+let saveT,pending={};
+function deepSet(o,path,v){const ks=path.split('.');let c=o;ks.slice(0,-1).forEach(k=>{c=c[k]=c[k]||{}});c[ks.at(-1)]=v}
+function deepGet(o,path){return path.split('.').reduce((c,k)=>c==null?c:c[k],o)}
+function queueSave(path,v){deepSet(pending,path,v);deepSet(state.cfg,path,v);clearTimeout(saveT);saveT=setTimeout(flushSave,500)}
+function flushSave(){const body=pending;pending={};post('/api/settings',body).then(()=>toast('Saved')).catch(e=>toast(e.message))}
+let bound=false;
+function bindSettings(){
+  $$('[data-k]').forEach(el=>{
+    const k=el.dataset.k,v=deepGet(state.cfg,k);
+    if(el.type==='checkbox')el.checked=!!v;else if(v!=null)el.value=v;
+    if(bound)return;
+    const ev=(el.type==='range'||el.type==='checkbox'||el.tagName==='SELECT')?'change':'input';
+    el.addEventListener(ev,()=>{
+      let val=el.type==='checkbox'?el.checked:(el.type==='number'||el.type==='range'||el.dataset.num!==undefined)?+el.value:el.value;
+      if(el.type==='time'&&!val)return;
+      if(el.id==='newsSel'){ $('#newsCustomBox').hidden=val!=='custom'; if(val==='custom')return; }
+      queueSave(k,val)});
+  });
+  bound=true;
+  // place
+  renderPlace();
+  // news
+  const sources=[['bbc-world','BBC World'],['bbc-top','BBC Top stories'],['bbc-tech','BBC Technology'],['bbc-business','BBC Business'],['bbc-sport','BBC Sport'],['bbc-science','BBC Science'],['guardian-world','The Guardian World'],['hindu','The Hindu'],['cricinfo','ESPNcricinfo'],['hn','Hacker News'],['verge','The Verge'],['custom','Search words or my own RSS']];
+  const cur=state.cfg.news||'bbc-world', known=sources.some(s=>s[0]===cur);
+  $('#newsSel').replaceChildren(...sources.map(([v,l])=>h('option',{value:v,selected:(known?v===cur:v==='custom')},l)));
+  $('#newsCustomBox').hidden=known;
+  if(!known)$('#newsCustom').value=cur.startsWith('q:')?cur.slice(2):cur;
+  $('#newsCustom').oninput=e=>{const v=e.target.value.trim();if(v)queueSave('news',/^https?:/.test(v)?v:'q:'+v)};
+  renderAlarms();renderWifi();renderSports();
+  const tests=['tap','msg','goal','wicket','alarm','chime','happy','sad'];
+  $('#sndTest').replaceChildren(...tests.map(n=>h('button',{class:'btn sm',onclick:()=>post('/api/sound',{name:n})},'Play '+n)));
+}
+
+// city search: Open-Meteo geocoding straight from the browser (falls back to the hub)
+let cityT;
+$('#citySearch').addEventListener('input',e=>{clearTimeout(cityT);const q=e.target.value.trim();if(q.length<2){$('#cityResults').replaceChildren();return}
+  cityT=setTimeout(async()=>{let res=[];
+    try{const j=await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&name='+encodeURIComponent(q))).json();
+      res=(j.results||[]).map(r=>({name:r.name,region:[r.admin1,r.country].filter(Boolean).join(', '),lat:r.latitude,lon:r.longitude,tz:r.timezone}))}
+    catch(_){try{res=await hubGet('/v1/meta/geocode?q='+encodeURIComponent(q))}catch(_){}}
+    $('#cityResults').replaceChildren(...(res.length?res.map(r=>h('button',{class:'net',onclick:()=>pickCity(r)},h('span',{},h('b',{},r.name),' ',h('span',{class:'muted small'},r.region)),h('span',{class:'muted small'},r.tz||''))):[h('p',{class:'muted small'},'No places found')]))},350)});
+function pickCity(r){
+  const place=r.name.slice(0,31),tz=r.tz||Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const posix=posixTZ(tz);
+  queueSave('loc.lat',+r.lat.toFixed(4));queueSave('loc.lon',+r.lon.toFixed(4));queueSave('loc.place',place);queueSave('time.tzName',tz);queueSave('time.tz',posix);
+  $('#cityResults').replaceChildren();$('#citySearch').value='';renderPlace()}
+function renderPlace(){const c=state.cfg;$('#placeNow').textContent=c.loc.place?`${c.loc.place} (${c.loc.lat.toFixed(2)}, ${c.loc.lon.toFixed(2)}), time zone ${c.time.tzName}`:'No location yet. Weather needs one.'}
+
+// IANA zone -> POSIX TZ rule for the ESP32 (offsets and DST dates measured with Intl)
+function posixTZ(tz){
+  const off=d=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric'}).formatToParts(d);
+    const g=t=>+p.find(x=>x.type===t).value;return Math.round((Date.UTC(g('year'),g('month')-1,g('day'),g('hour')%24,g('minute'))-Math.floor(d.getTime()/60000)*60000)/60000)};
+  const fmt=m=>{const s=-m,a=Math.abs(s);return(s<0?'-':'')+Math.floor(a/60)+(a%60?':'+String(a%60).padStart(2,'0'):'')};
+  try{
+    const y=new Date().getUTCFullYear(),t0=Date.UTC(y,0,1);
+    let prev=off(new Date(t0));const trans=[];
+    for(let d=1;d<=366;d++){const t=t0+d*864e5,o=off(new Date(t));if(o!==prev){let lo=t-864e5,hi=t;while(hi-lo>60000){const mid=Math.floor((lo+hi)/120000)*60000;if(off(new Date(mid))===prev)lo=mid;else hi=mid}trans.push({t:hi,from:prev,to:o});prev=o}}
+    if(trans.length<2)return'XST'+fmt(off(new Date(t0)));
+    const offs=trans.map(x=>x.to),std=Math.min(...offs),dst=Math.max(...offs);
+    const rule=tr=>{const L=new Date(tr.t+tr.from*60000),m=L.getUTCMonth()+1,day=L.getUTCDate(),dim=new Date(Date.UTC(L.getUTCFullYear(),m,0)).getUTCDate();
+      const w=day+7>dim?5:Math.ceil(day/7),hh=L.getUTCHours(),mi=L.getUTCMinutes();return`M${m}.${w}.${L.getUTCDay()}`+(hh===2&&!mi?'':'/'+hh+(mi?':'+String(mi).padStart(2,'0'):''))};
+    return`XST${fmt(std)}XDT${dst-std===60?'':fmt(dst)},${rule(trans.find(x=>x.to===dst))},${rule(trans.find(x=>x.to===std))}`;
+  }catch(_){return'UTC0'}
+}
+
+// hub helpers (the dashboard talks to the hub directly for pickers)
+async function hubGet(path){const u=state.cfg&&state.cfg.hub.url;if(!u)throw new Error('no hub');
+  const r=await fetch(u.replace(/\/$/,'')+path,{headers:state.cfg.hub.token&&state.cfg.hub.token!=='********'?{'X-Hub-Token':state.cfg.hub.token}:{}});if(!r.ok)throw new Error('hub '+r.status);return r.json()}
+$('#hubTestBtn').onclick=async()=>{const el=$('#hubTest');el.textContent='Checking...';
+  try{const j=await hubGet('/health');el.textContent=`Hub ${j.version} is running, ${j.devices} device(s) connected.`;loadHubMeta()}catch(e){el.textContent='Could not reach the hub from this browser. Check the address and that the hub is running.'}};
+
+const LEAGUES_FALLBACK=[['eng.1','Premier League'],['esp.1','LaLiga'],['ita.1','Serie A'],['ger.1','Bundesliga'],['fra.1','Ligue 1'],['uefa.champions','Champions League'],['uefa.europa','Europa League'],['ind.1','Indian Super League'],['usa.1','MLS'],['ned.1','Eredivisie'],['por.1','Primeira Liga'],['sau.1','Saudi Pro League'],['fifa.world','World Cup']];
+async function loadHubMeta(){
+  let leagues=LEAGUES_FALLBACK.map(([id,name])=>({id,name}));
+  try{leagues=await hubGet('/v1/meta/leagues')}catch(_){}
+  state.hubMeta={leagues};renderSports();
+  try{const teams=await hubGet('/v1/meta/teams?sport=cricket');$('#crTeamPick').replaceChildren(h('option',{value:''},teams.length?'Pick from current matches':'No live series right now'),...teams.map(t=>h('option',{value:JSON.stringify(t)},`${t.name} (${t.abbr})`)))}catch(_){}
+}
+function renderSports(){
+  const sp=state.cfg.sports,leagues=(state.hubMeta&&state.hubMeta.leagues)||LEAGUES_FALLBACK.map(([id,name])=>({id,name}));
+  $('#fbLeagues').replaceChildren(...leagues.map(l=>h('button',{class:'btn sm','aria-pressed':sp.fbLeagues.includes(l.id)?'true':'false',onclick:e=>{
+    const on=!sp.fbLeagues.includes(l.id);if(on&&sp.fbLeagues.length>=4){toast('Up to four leagues');return}
+    sp.fbLeagues=on?[...sp.fbLeagues,l.id]:sp.fbLeagues.filter(x=>x!==l.id);queueSave('sports.fbLeagues',sp.fbLeagues);renderSports()}},l.name)));
+  const teamItem=(t,list,key)=>h('div',{class:'item'},h('span',{class:'grow'},h('b',{},t.abbr||t.id),' ',h('span',{class:'muted small'},t.lg||'')),
+    h('button',{class:'btn ghost sm',onclick:()=>{const n=list.filter(x=>x!==t);queueSave(key,n);deepSet(state.cfg,key,n);renderSports()}},'Remove'));
+  $('#fbTeams').replaceChildren(...(sp.fbTeams.length?sp.fbTeams.map(t=>teamItem(t,sp.fbTeams,'sports.fbTeams')):[h('p',{class:'muted small'},'None yet. Pick a league and team below.')]));
+  $('#crTeams').replaceChildren(...(sp.crTeams.length?sp.crTeams.map(t=>teamItem(t,sp.crTeams,'sports.crTeams')):[h('p',{class:'muted small'},'None yet.')]));
+  const sel=$('#fbLgPick'),cur=sel.value;
+  sel.replaceChildren(h('option',{value:''},'Pick a league'),...leagues.map(l=>h('option',{value:l.id},l.name)));sel.value=cur;
+}
+$('#fbLgPick').onchange=async e=>{const lg=e.target.value,tp=$('#fbTeamPick');tp.replaceChildren(h('option',{value:''},'Loading teams...'));
+  try{const teams=await hubGet('/v1/meta/teams?sport=football&lg='+lg);tp.replaceChildren(h('option',{value:''},'Pick a team'),...teams.map(t=>h('option',{value:JSON.stringify({id:t.id,lg,abbr:t.abbr})},t.name)))}
+  catch(_){tp.replaceChildren(h('option',{value:''},'Team list needs the hub'))}};
+$('#fbTeamPick').onchange=e=>{if(!e.target.value)return;const t=JSON.parse(e.target.value),sp=state.cfg.sports;
+  if(sp.fbTeams.some(x=>x.id===t.id)){toast('Already following');return}if(sp.fbTeams.length>=6){toast('Up to six teams');return}
+  sp.fbTeams=[...sp.fbTeams,t];queueSave('sports.fbTeams',sp.fbTeams);
+  if(!sp.fbLeagues.includes(t.lg)&&sp.fbLeagues.length<4){sp.fbLeagues=[...sp.fbLeagues,t.lg];queueSave('sports.fbLeagues',sp.fbLeagues)}
+  renderSports();e.target.value=''};
+function addCr(t){const sp=state.cfg.sports;if(sp.crTeams.some(x=>(t.id&&x.id===t.id)||(!t.id&&x.abbr===t.abbr))){toast('Already following');return}
+  if(sp.crTeams.length>=6){toast('Up to six teams');return}sp.crTeams=[...sp.crTeams,t];queueSave('sports.crTeams',sp.crTeams);renderSports()}
+$('#crTeamPick').onchange=e=>{if(e.target.value){const t=JSON.parse(e.target.value);addCr({id:t.id,abbr:t.abbr,lg:''});e.target.value=''}};
+$('#crAbbr').onkeydown=e=>{if(e.key==='Enter'){const v=e.target.value.trim().toUpperCase();if(/^[A-Z]{2,5}$/.test(v)){addCr({id:'',abbr:v,lg:''});e.target.value=''}}};
+
+// alarms
+const DAYS=['M','T','W','T','F','S','S'],DAYN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function saveAlarms(){queueSave('alarms',state.cfg.alarms)}
+function renderAlarms(){
+  const al=state.cfg.alarms;
+  $('#alarmList').replaceChildren(...(al.length?al.map((a,i)=>h('div',{class:'item',style:'flex-wrap:wrap'},
+    h('span',{class:'switch'},h('input',{type:'checkbox','aria-label':'Alarm on',checked:a.on,onchange:e=>{a.on=e.target.checked;saveAlarms()}}),h('span')),
+    h('input',{type:'time',value:a.time,style:'width:120px','aria-label':'Time',onchange:e=>{if(e.target.value){a.time=e.target.value;saveAlarms()}}}),
+    h('div',{class:'days'},...DAYS.map((d,k)=>h('button',{class:'day','aria-label':DAYN[k],'aria-pressed':(a.days&(1<<k))?'true':'false',onclick:e=>{a.days^=(1<<k);e.target.setAttribute('aria-pressed',(a.days&(1<<k))?'true':'false');saveAlarms()}},d))),
+    h('input',{type:'text',value:a.label,placeholder:'Label',maxlength:19,class:'grow',style:'min-width:120px','aria-label':'Label',oninput:e=>{a.label=e.target.value;saveAlarms()}}),
+    h('button',{class:'btn ghost sm',onclick:()=>{al.splice(i,1);saveAlarms();renderAlarms()}},'Delete'))):[h('p',{class:'muted small'},'No alarms. Days left empty means once.')]))}
+$('#addAlarm').onclick=()=>{if(state.cfg.alarms.length>=8){toast('Up to eight alarms');return}state.cfg.alarms.push({on:true,time:'07:00',days:31,label:''});saveAlarms();renderAlarms()};
+
+// wi-fi
+function renderWifi(){const nets=state.cfg.wifi.nets;
+  $('#wifiList').replaceChildren(...nets.map((n,i)=>h('div',{class:'item'},h('span',{class:'grow'},h('b',{},n.ssid),i===0?h('span',{class:'tag'},'first'):null),
+    i?h('button',{class:'btn ghost sm',onclick:()=>{nets.unshift(nets.splice(i,1)[0]);queueSave('wifi.nets',nets);renderWifi()}},'Try first'):null,
+    h('button',{class:'btn ghost sm',onclick:()=>{if(nets.length===1&&!confirm('Remove the only network? Emo will open its setup hotspot.'))return;nets.splice(i,1);queueSave('wifi.nets',nets);renderWifi()}},'Remove'))))}
+$('#wAdd').onclick=()=>{const s=$('#wSsid').value.trim();if(!s)return;const nets=state.cfg.wifi.nets.filter(n=>n.ssid!==s);if(nets.length>=3){toast('Up to three networks');return}
+  nets.push({ssid:s,pass:$('#wPass').value});state.cfg.wifi.nets=nets;queueSave('wifi.nets',nets);$('#wSsid').value=$('#wPass').value='';renderWifi()};
+
+// ---------------------------------------------------------------- cards
+let cardSaveT;
+function saveCards(){clearTimeout(cardSaveT);cardSaveT=setTimeout(()=>post('/api/cards',{cards:state.cards}).then(()=>toast('Cards saved')).catch(e=>toast(e.message)),400)}
+const typeOf=k=>state.types.find(t=>t.key===k)||{title:k,desc:'',arg:''};
+function renderCards(){
+  const ul=$('#cardList');
+  ul.replaceChildren(...state.cards.map((c,i)=>{
+    const t=typeOf(c.t),open=state.openCard===i;
+    const li=h('li',{class:'card'+(c.on?'':' off')+(i===state.st.card?' current':''),draggable:'false','data-i':i},
+      h('div',{class:'card-head'},
+        h('button',{class:'handle','aria-label':'Drag to reorder',title:'Drag to reorder'},svgGrip()),
+        h('button',{class:'card-title','aria-expanded':open?'true':'false',onclick:()=>{state.openCard=open?-1:i;renderCards()}},
+          h('b',{},c.name||t.title),h('small',{},c.name?t.title:(t.hub&&!(state.cfg&&state.cfg.hub.url)?'needs the hub':t.desc.split('.')[0]))),
+        h('span',{class:'now-badge',hidden:i!==state.st.card},'On screen'),
+        h('span',{class:'switch'},h('input',{type:'checkbox','aria-label':'Show this card',checked:c.on,onchange:e=>{c.on=e.target.checked;saveCards();renderCards()}}),h('span'))),
+      open?h('div',{class:'card-body'},
+        h('p',{class:'note'},t.desc),
+        h('div',{class:'grid2'},
+          h('label',{class:'field'},h('span',{},'Title on screen'),h('input',{type:'text',value:c.name,maxlength:15,placeholder:t.title,oninput:e=>{c.name=e.target.value;saveCards()}})),
+          h('label',{class:'field'},h('span',{},'Seconds on screen (0 = default)'),h('input',{type:'number',min:0,max:240,value:c.dur,oninput:e=>{c.dur=+e.target.value||0;saveCards()}}))),
+        t.arg?h('label',{class:'field'},h('span',{},t.arg),h('input',{type:'text',value:c.arg,maxlength:23,oninput:e=>{c.arg=e.target.value.trim();saveCards()}})):null,
+        h('div',{class:'row',style:'justify-content:flex-start;flex-wrap:wrap'},
+          h('button',{class:'btn sm',onclick:()=>post('/api/action?a=goto&i='+i)},'Show now'),
+          h('button',{class:'btn sm',disabled:i===0,onclick:()=>move(i,i-1)},'Move up'),
+          h('button',{class:'btn sm',disabled:i===state.cards.length-1,onclick:()=>move(i,i+1)},'Move down'),
+          h('button',{class:'btn sm',onclick:()=>{if(state.cards.length>=24)return toast('Up to 24 cards');state.cards.splice(i+1,0,{...c});saveCards();renderCards()}},'Duplicate'),
+          h('button',{class:'btn sm danger',onclick:()=>{if(state.cards.length<=1)return toast('Keep at least one card');state.cards.splice(i,1);state.openCard=-1;saveCards();renderCards()}},'Remove'))):null);
+    return li}));
+  enableDrag(ul);
+}
+function move(a,b){const[c]=state.cards.splice(a,1);state.cards.splice(b,0,c);if(state.openCard===a)state.openCard=b;saveCards();renderCards()}
+function svgGrip(){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('width','14');s.setAttribute('height','18');s.setAttribute('viewBox','0 0 14 18');
+  s.innerHTML='<g fill="currentColor"><circle cx="4" cy="4" r="1.6"/><circle cx="10" cy="4" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="14" r="1.6"/><circle cx="10" cy="14" r="1.6"/></g>';return s}
+// pointer-based drag (works with touch and mouse)
+function enableDrag(ul){
+  $$('.handle',ul).forEach(hd=>{hd.onpointerdown=e=>{e.preventDefault();const li=hd.closest('.card'),from=+li.dataset.i;li.classList.add('dragging');hd.setPointerCapture(e.pointerId);let to=from;
+    hd.onpointermove=ev=>{const el=document.elementFromPoint(ev.clientX,ev.clientY);const over=el&&el.closest('.card');$$('.card',ul).forEach(x=>x.classList.toggle('over',x===over&&x!==li));if(over)to=+over.dataset.i};
+    hd.onpointerup=()=>{hd.onpointermove=hd.onpointerup=null;li.classList.remove('dragging');$$('.card',ul).forEach(x=>x.classList.remove('over'));if(to!==from)move(from,to)}}});
+}
+$('#addCardBtn').onclick=()=>{$('#pickerBox').hidden=false;$('#pickerBox').scrollIntoView({behavior:'smooth',block:'start'})};
+$('#pickerClose').onclick=()=>$('#pickerBox').hidden=true;
+function renderPicker(){$('#picker').replaceChildren(...state.types.map(t=>h('button',{class:'pick',onclick:()=>{if(state.cards.length>=24)return toast('Up to 24 cards');
+  state.cards.push({t:t.key,on:true,dur:0,arg:'',name:''});state.openCard=state.cards.length-1;saveCards();renderCards();$('#pickerBox').hidden=true;toast(t.title+' added')}},
+  h('b',{},t.title,t.hub?h('span',{class:'tag'},'hub'):null),h('small',{},t.desc))))}
+
+// ---------------------------------------------------------------- live data
+async function loadFeed(){
+  const box=$('#feedView');if(!state.cfg||!state.cfg.hub.url){box.replaceChildren(h('p',{class:'muted small'},'Set the hub address in Settings first.'));return}
+  box.replaceChildren(h('p',{class:'muted small'},'Loading...'));
+  try{
+    const s=await hubGet('/health');$('#feedInfo').textContent=`Hub ${s.version}, ${s.upstream.requests} requests, ${s.upstream.failures} failed${s.upstream.lastError?': '+s.upstream.lastError:''}`;
+    const sub={name:state.cfg.device.host,loc:{lat:state.cfg.loc.lat,lon:state.cfg.loc.lon},units:state.cfg.loc.imperial?'imperial':'metric',tz:state.cfg.time.tzName,wx:1,
+      fb:{lg:state.cfg.sports.fbLeagues,tm:state.cfg.sports.fbTeams,tb:state.cfg.sports.fbLeagues.slice(0,1)},cr:{tm:state.cfg.sports.crTeams,all:state.cfg.sports.crAll},
+      mk:{cr:state.cfg.markets.crypto.split(',').filter(Boolean),st:state.cfg.markets.stocks.split(',').filter(Boolean),fx:state.cfg.markets.fx.split(',').filter(Boolean),vs:state.cfg.markets.vs},nw:state.cfg.news,ic:state.cfg.ical};
+    const u=state.cfg.hub.url.replace(/\/$/,'')+'/v1/preview';
+    const f=await (await fetch(u,{method:'POST',headers:{'Content-Type':'application/json',...(state.cfg.hub.token&&state.cfg.hub.token!=='********'?{'X-Hub-Token':state.cfg.hub.token}:{})},body:JSON.stringify(sub)})).json();
+    const rows=[];
+    const sec=(t,items)=>{rows.push(h('h3',{},t));rows.push(...(items.length?items:[h('p',{class:'muted small'},'Nothing right now')]))};
+    if(f.wx)sec('Weather',[h('div',{class:'item'},`${f.wx.t}°, feels ${f.wx.f}°, humidity ${f.wx.h}%`)]);
+    sec('Football',(f.fb||[]).map(m=>h('div',{class:'item'},h('span',{class:'grow'},`${m.h.a} ${m.s==='pre'?'v':m.h.s+'-'+m.a.s} ${m.a.a}`,m.m?h('span',{class:'tag'},'your team'):null),h('span',{class:'muted small'},m.s==='pre'?new Date(m.t*1000).toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'}):m.d))));
+    sec('Cricket',(f.cr||[]).map(m=>h('div',{class:'item'},h('span',{class:'grow'},`${m.a[0].a} ${m.a[0].sc||''} v ${m.a[1].a} ${m.a[1].sc||''}`,m.m?h('span',{class:'tag'},'your team'):null),h('span',{class:'muted small'},m.st||m.s))));
+    sec('Markets',(f.mk||[]).map(t=>h('div',{class:'item'},h('span',{class:'grow'},t.s),`${t.p}  ${t.k==='f'?'':(t.c>0?'+':'')+t.c+'%'}`)));
+    sec('Headlines',(f.nw||[]).slice(0,4).map(n=>h('div',{class:'item'},n.h)));
+    sec('Calendar',(f.ic||[]).map(e=>h('div',{class:'item'},h('span',{class:'grow'},e.d),h('span',{class:'muted small'},new Date(e.t*1000).toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'})))));
+    if(f.err&&f.err.length)rows.push(h('p',{class:'warn'},'Sources failing right now: '+f.err.join(', ')));
+    box.replaceChildren(...rows);
+  }catch(e){box.replaceChildren(h('p',{class:'warn'},'Could not reach the hub from this browser.'))}
+}
+$('#feedLoad').onclick=loadFeed;
+
+// ---------------------------------------------------------------- system
+function renderHealth(){
+  const s=state.st;if(!s.fw)return;
+  const stat=(v,l)=>h('div',{class:'stat'},h('b',{},v),h('span',{},l));
+  $('#health').replaceChildren(stat(fmtUp(s.uptime),'running'),stat(Math.round(s.heap/1024)+' KB','free memory'),stat(Math.round(s.block/1024)+' KB','largest block'),
+    stat(s.rssi?s.rssi+' dBm':'-','Wi-Fi signal'),stat(s.hub.url?(s.hub.state==='ok'?'OK':s.hub.state):'off','hub'),stat(s.hub.lastOk>=0?fmtAgo(s.hub.lastOk):'-','last hub data'));
+  $('#healthNote').textContent=`Firmware ${s.fw}. Last restart: ${s.reset}.${s.safe?' Safe mode is on after repeated crashes: the hub and sound are paused until a restart.':''}${s.wifiReason?' Wi-Fi: '+s.wifiReason+'.':''}`;
+  $('#fwNote').textContent=s.ota?`Running ${s.fw}. Pick a firmware.bin from a release or your build. If it fails to start, Emo goes back to this version by itself.`:'This build has no second app slot, so updates go over USB.';
+}
+$('#fwFile').onchange=e=>{$('#fwBtn').disabled=!e.target.files.length};
+$('#fwBtn').onclick=()=>{const f=$('#fwFile').files[0];if(!f)return;const x=new XMLHttpRequest(),fd=new FormData();fd.append('firmware',f,f.name);
+  $('#fwBtn').disabled=true;x.upload.onprogress=e=>{$('#fwBar').style.width=(e.loaded/e.total*100)+'%'};
+  x.onload=()=>{if(x.status===200){toast('Installed. Emo is restarting...');setTimeout(()=>location.reload(),9000)}else{toast('Update failed: '+x.responseText);$('#fwBtn').disabled=false}};
+  x.onerror=()=>{toast('Upload interrupted');$('#fwBtn').disabled=false};x.open('POST','/api/update');x.send(fd)};
+$('#restoreFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());await post('/api/restore',j);toast('Restored');setTimeout(load,800)}catch(err){toast('Not an EmoDesk backup')}};
+async function loadLog(){try{const t=await api('/api/log');$('#log').value=t;$('#log').scrollTop=1e9}catch(_){}}
+$('#logBtn').onclick=loadLog;
+$('#rebootBtn').onclick=()=>post('/api/reboot').then(()=>toast('Restarting...'));
+$('#factoryBtn').onclick=()=>{if(confirm('Erase every setting, card and Wi-Fi network? Emo restarts into setup mode.'))post('/api/factory').then(()=>toast('Erased. Restarting...'))};
+
+// ---------------------------------------------------------------- PIN
+$('#pinBtn2').onclick=async()=>{try{await post('/api/pin',{pin:$('#pinInput').value});$('#pinModal').hidden=true;load()}catch(e){toast('Wrong PIN')}};
+$('#pinInput').onkeydown=e=>{if(e.key==='Enter')$('#pinBtn2').click()};
+
+// ---------------------------------------------------------------- setup mode
+async function scan(){$('#netList').replaceChildren(h('p',{class:'muted small'},'Scanning...'));
+  for(let i=0;i<12;i++){try{const r=await fetch('/api/scan');if(r.status===200){const nets=(await r.json()).sort((a,b)=>b.rssi-a.rssi);
+      $('#netList').replaceChildren(...(nets.length?nets.map(n=>h('button',{class:'net',onclick:e=>{$$('.net').forEach(x=>x.setAttribute('aria-pressed','false'));e.currentTarget.setAttribute('aria-pressed','true');$('#ssid').value=n.ssid;$('#pass').focus()}},
+        h('span',{},n.ssid),h('span',{class:'muted small'},(n.rssi>-60?'strong':n.rssi>-72?'good':'weak')+(n.open?', open':'')))):[h('p',{class:'muted small'},'No networks found. Type the name below.')]));return}}catch(_){}
+    await new Promise(r=>setTimeout(r,1000))}
+  $('#netList').replaceChildren(h('p',{class:'muted small'},'Scan timed out. Type the name below.'))}
+$('#scanBtn').onclick=scan;
+$('#joinBtn').onclick=async()=>{const ssid=$('#ssid').value.trim();if(!ssid){toast('Pick a network');return}
+  try{await post('/api/wifi',{ssid,pass:$('#pass').value});$('#setupNote').textContent=`Connecting to ${ssid}. Rejoin your normal Wi-Fi and open http://emo.local in a minute. If Emo shows the setup screen again, the password was wrong.`;toast('Connecting...')}catch(e){toast(e.message)}};
+
+// ---------------------------------------------------------------- boot
+async function load(){
+  try{
+    const st=await api('/api/state');
+    if(st.mode==='setup'){$('#setup').hidden=false;$('#app').hidden=true;scan();return}
+    $('#app').hidden=false;$('#setup').hidden=true;
+    onStatus(st);
+    const [cfg,cards]=await Promise.all([api('/api/settings'),api('/api/cards')]);
+    state.cfg=cfg;state.cards=cards.cards;state.types=cards.types;
+    bindSettings();renderCards();renderPicker();renderHealth();
+    if(cfg.hub.url)loadHubMeta();
+    connectWs();
+  }catch(e){if(e.message!=='PIN required'){toast('Emo is not answering. Retrying...');setTimeout(load,3000)}}
+}
+cx.fillStyle='#050a12';cx.fillRect(0,0,512,256);
+load();
+</script>
+</body>
+</html>

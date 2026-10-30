@@ -1,0 +1,32 @@
+name: build
+on: [push, pull_request]
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+      - run: pip install platformio
+      # fails if the image does not fit the 1.75 MB OTA slot
+      - run: pio run -e esp32c3_supermini
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emodesk-firmware
+          path: |
+            .pio/build/esp32c3_supermini/firmware.bin
+            .pio/build/esp32c3_supermini/bootloader.bin
+            .pio/build/esp32c3_supermini/partitions.bin
+
+  hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: cd hub && npm test
