@@ -266,6 +266,7 @@ static NetworkClient& clientFor(const String& url) {
     if (!tlsClient) {
       tlsClient = new WiFiClientSecure();
       tlsClient->setInsecure();   // hub token protects the data; LAN http needs no TLS at all
+      tlsClient->setHandshakeTimeout(15000);
     }
     return *tlsClient;
   }
@@ -295,21 +296,34 @@ static bool hubRegister(const String& base, const String& token) {
   uint32_t h = fnv(body);
   String url = base + "/v1/sub";
   http.begin(clientFor(url), url);
-  http.setConnectTimeout(5000);
-  http.setTimeout(12000);
+  http.setConnectTimeout(15000);
+  http.setTimeout(35000);
   http.addHeader("Content-Type", "application/json");
   if (token.length()) http.addHeader("X-Hub-Token", token);
   int code = http.POST(body);
   bool ok = false;
   if (code == 200) {
+    String resp = http.getString();
     JsonDocument r;
-    if (!deserializeJson(r, http.getStream())) {
+    DeserializationError e = deserializeJson(r, resp);
+    if (!e) {
       safeCopy(subId, r["id"] | "", sizeof(subId));
       ok = subId[0] != 0;
+    } else {
+      logf("[HUB] register bad JSON: %s (resp=%s)", e.c_str(), resp.c_str());
     }
   } else if (code == 401) setErr("hub token rejected");
-  else if (code < 0) setErr("hub unreachable");
-  else { char b[32]; snprintf(b, sizeof(b), "hub error %d", code); setErr(b); }
+  else if (code < 0) {
+    char b[48];
+    snprintf(b, sizeof(b), "err %d (%s)", code, http.errorToString(code).c_str());
+    setErr(b);
+    logf("[HUB] register error: %s (url=%s, heap=%u)", b, url.c_str(), (unsigned)ESP.getFreeHeap());
+  } else {
+    char b[32];
+    snprintf(b, sizeof(b), "hub error %d", code);
+    setErr(b);
+    logf("[HUB] register HTTP status %d", code);
+  }
   http.end();
   if (ok) {
     subHash = h;
@@ -325,16 +339,19 @@ static int hubPoll(const String& base, const String& token, uint32_t since) {
   snprintf(q, sizeof(q), "/v1/feed?sub=%s&v=%lu&wait=%d", subId, (unsigned long)since, since ? 20 : 0);
   String url = base + q;
   http.begin(clientFor(url), url);
-  http.setConnectTimeout(5000);
-  http.setTimeout(28000);    // the hub holds the request up to 20 s
+  http.setConnectTimeout(15000);
+  http.setTimeout(40000);    // the hub holds the request up to 20 s
   if (token.length()) http.addHeader("X-Hub-Token", token);
   int code = http.GET();
   int ret = -1;
   if (code == 200) {
+    String resp = http.getString();
     JsonDocument d;
-    DeserializationError e = deserializeJson(d, http.getStream());
-    if (e) { logf("[HUB] bad feed JSON: %s", e.c_str()); setErr("bad data from hub"); }
-    else {
+    DeserializationError e = deserializeJson(d, resp);
+    if (e) {
+      logf("[HUB] bad feed JSON: %s (len=%u)", e.c_str(), (unsigned)resp.length());
+      setErr("bad data from hub");
+    } else {
       parseFeed(d, *back);
       handleEvents(d);
       swapIn();
@@ -343,8 +360,17 @@ static int hubPoll(const String& base, const String& token, uint32_t since) {
   } else if (code == 304) ret = 0;
   else if (code == 404) ret = -2;
   else if (code == 401) setErr("hub token rejected");
-  else if (code < 0) setErr(code == HTTPC_ERROR_READ_TIMEOUT ? "hub timed out" : "hub unreachable");
-  else { char b[32]; snprintf(b, sizeof(b), "hub error %d", code); setErr(b); }
+  else if (code < 0) {
+    char b[48];
+    snprintf(b, sizeof(b), "err %d (%s)", code, http.errorToString(code).c_str());
+    setErr(b);
+    logf("[HUB] poll error: %s", b);
+  } else {
+    char b[32];
+    snprintf(b, sizeof(b), "hub error %d", code);
+    setErr(b);
+    logf("[HUB] poll HTTP status %d", code);
+  }
   http.end();
   return ret;
 }

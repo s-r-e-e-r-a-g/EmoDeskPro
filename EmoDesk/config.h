@@ -31,7 +31,7 @@
 #define AUDIO_RATE      16000
 
 // ---------------- Tasks ----------------
-#define NET_STACK       (10 * 1024)    // TLS (https hub) needs ~7 KB peak
+#define NET_STACK       (12 * 1024)    // TLS (https hub) needs ~7 KB peak
 #define NET_PRIO        1
 #define AUDIO_STACK     3072
 #define AUDIO_PRIO      3

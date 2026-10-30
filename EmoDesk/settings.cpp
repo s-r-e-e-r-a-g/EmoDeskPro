@@ -48,6 +48,7 @@ void cfgUnlock() { if (cfgMx) xSemaphoreGiveRecursive(cfgMx); }
 void settingsDefaults(Settings& s) {
   memset(&s, 0, sizeof(s));
   safeCopy(s.host, DEFAULT_HOST, sizeof(s.host));
+  safeCopy(s.hubUrl, "https://emodeskpro.onrender.com", sizeof(s.hubUrl));
   s.txPower = 0;
   s.wifiSleep = false;
   safeCopy(s.tz, "UTC0", sizeof(s.tz));
@@ -85,7 +86,7 @@ void settingsDefaults(Settings& s) {
 }
 
 void cardsDefaults() {
-  const uint8_t def[] = {CT_EMO, CT_CLOCK, CT_WEATHER, CT_FOOTBALL, CT_CRICKET, CT_MARKETS, CT_NEWS, CT_AGENDA, CT_POMODORO, CT_SYSTEM};
+  const uint8_t def[] = {CT_EMO, CT_CLOCK, CT_WEATHER, CT_FOOTBALL, CT_TABLE, CT_CRICKET, CT_MARKETS, CT_NEWS, CT_AGENDA, CT_POMODORO, CT_SYSTEM};
   gCardN = 0;
   for (uint8_t t : def) {
     CardCfg& c = gCards[gCardN++];
